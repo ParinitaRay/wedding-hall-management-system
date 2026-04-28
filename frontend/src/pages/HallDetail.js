@@ -6,18 +6,17 @@ import api from '../api';
 export default function HallDetail() {
   const { id } = useParams();
   const { user, isAdmin } = useAuth();
-
   if (isAdmin) return <AdminHallView id={id} />;
   return <UserHallView id={id} user={user} />;
 }
 
-// ─── Shared Components ────────────────────────────────────────────────────────
+// ─── Shared ───────────────────────────────────────────────────────────────────
 
 function HallImages({ images }) {
   const [imgIdx, setImgIdx] = useState(0);
   if (images.length === 0)
     return (
-      <div style={{ width: '100%', height: '260px', background: 'linear-gradient(135deg, var(--cream-dark), var(--terracotta))',
+      <div style={{ width: '100%', height: '260px', background: 'linear-gradient(135deg, var(--brown-mid), var(--espresso))',
         borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '5rem', marginBottom: '1.5rem' }}>
         💒
       </div>
@@ -55,6 +54,280 @@ function HallInfoCards({ hall }) {
           <div style={{ fontWeight: '700', fontSize: '0.9rem' }}>{item.value}</div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ─── Booking Calendar (User) ──────────────────────────────────────────────────
+
+function BookingCalendar({ hallId, onDateSelect, selectedDate }) {
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [availableDates, setAvailableDates] = useState({});
+  const [loading, setLoading] = useState(false);
+
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Load all slots for the current month to know which dates have availability
+  useEffect(() => {
+    setLoading(true);
+    const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
+
+    // Fetch slots for each day in the month
+    const promises = Array.from({ length: daysInMonth }).map((_, i) => {
+      const day = String(i + 1).padStart(2, '0');
+      const dateStr = `${monthStr}-${day}`;
+      if (dateStr < today) return Promise.resolve({ date: dateStr, available: false, count: 0 });
+      return api.get(`/slots/${hallId}?date=${dateStr}`)
+        .then(r => ({
+          date: dateStr,
+          available: r.data.some(s => s.is_available),
+          count: r.data.filter(s => s.is_available).length,
+          total: r.data.length,
+        }))
+        .catch(() => ({ date: dateStr, available: false, count: 0 }));
+    });
+
+    Promise.all(promises).then(results => {
+      const map = {};
+      results.forEach(r => { map[r.date] = r; });
+      setAvailableDates(map);
+      setLoading(false);
+    });
+  }, [hallId, year, month, daysInMonth, today]);
+
+  const monthName = currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+  return (
+    <div>
+      {/* Month Navigation */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <button className="btn btn-secondary btn-sm"
+          onClick={() => setCurrentMonth(new Date(year, month - 1, 1))}>‹</button>
+        <span style={{ fontFamily: 'Playfair Display, serif', fontWeight: 700, color: 'var(--espresso)' }}>
+          {monthName}
+        </span>
+        <button className="btn btn-secondary btn-sm"
+          onClick={() => setCurrentMonth(new Date(year, month + 1, 1))}>›</button>
+      </div>
+
+      {/* Day headers */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '3px', marginBottom: '3px' }}>
+        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
+          <div key={d} style={{ textAlign: 'center', fontSize: '0.72rem', fontWeight: 700,
+            color: 'var(--text-muted)', padding: '4px 0' }}>{d}</div>
+        ))}
+      </div>
+
+      {/* Days */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+          Loading availability...
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '3px' }}>
+          {Array.from({ length: firstDay }).map((_, i) => <div key={`e${i}`} />)}
+          {Array.from({ length: daysInMonth }).map((_, i) => {
+            const day = i + 1;
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const info = availableDates[dateStr];
+            const isPast = dateStr < today;
+            const isToday = dateStr === today;
+            const isSelected = selectedDate === dateStr;
+            const hasSlots = info?.total > 0;
+            const hasAvailable = info?.available;
+
+            let bg = 'var(--beige)';
+            let color = 'var(--text-muted)';
+            let cursor = 'default';
+            let border = '2px solid transparent';
+
+            if (isPast) {
+              bg = '#f0ebe5'; color = '#ccc';
+            } else if (isSelected) {
+              bg = 'var(--terracotta)'; color = 'white'; border = '2px solid var(--terra-dark)';
+            } else if (hasAvailable) {
+              bg = '#e8f5e9'; color = '#2e7d32'; cursor = 'pointer'; border = '2px solid #a5d6a7';
+            } else if (hasSlots && !hasAvailable) {
+              bg = '#fce4ec'; color = '#c62828'; border = '2px solid #ef9a9a';
+            } else if (isToday) {
+              bg = 'var(--cream-dark)'; color = 'var(--espresso)'; cursor = 'default';
+            }
+
+            return (
+              <div key={day}
+                onClick={() => !isPast && hasAvailable && onDateSelect(dateStr)}
+                style={{
+                  borderRadius: '8px', padding: '6px 2px', textAlign: 'center',
+                  minHeight: '48px', display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center', gap: '2px',
+                  background: bg, color, cursor, border, transition: 'all 0.15s',
+                  fontSize: '0.85rem', fontWeight: isSelected || isToday ? 700 : 500,
+                }}>
+                <span>{day}</span>
+                {!isPast && hasAvailable && !isSelected && (
+                  <span style={{ fontSize: '0.6rem', fontWeight: 600 }}>{info.count} free</span>
+                )}
+                {!isPast && hasSlots && !hasAvailable && (
+                  <span style={{ fontSize: '0.6rem' }}>full</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Legend */}
+      <div style={{ display: 'flex', gap: '1rem', marginTop: '0.75rem', fontSize: '0.75rem', flexWrap: 'wrap' }}>
+        {[
+          { color: '#e8f5e9', border: '#a5d6a7', label: 'Available' },
+          { color: '#fce4ec', border: '#ef9a9a', label: 'Fully booked' },
+          { color: 'var(--terracotta)', border: 'var(--terra-dark)', label: 'Selected' },
+        ].map(l => (
+          <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <div style={{ width: '12px', height: '12px', borderRadius: '3px',
+              background: l.color, border: `1.5px solid ${l.border}` }} />
+            <span style={{ color: 'var(--text-muted)' }}>{l.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── User View ────────────────────────────────────────────────────────────────
+
+function UserHallView({ id, user }) {
+  const navigate = useNavigate();
+  const [hall, setHall] = useState(null);
+  const [slots, setSlots] = useState([]);
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [notes, setNotes] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [booking, setBooking] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    api.get(`/halls/${id}`).then(r => setHall(r.data)).finally(() => setLoading(false));
+  }, [id]);
+
+  const loadSlots = useCallback(() => {
+    if (!selectedDate) return;
+    api.get(`/slots/${id}?date=${selectedDate}`).then(r => setSlots(r.data));
+    setSelectedSlot(null);
+  }, [selectedDate, id]);
+
+  useEffect(() => { loadSlots(); }, [loadSlots]);
+
+  const handleDateSelect = (date) => {
+    setSelectedDate(date);
+    setSelectedSlot(null);
+    setError('');
+    setSuccess('');
+  };
+
+  const handleBook = async () => {
+    if (!user) return navigate('/login');
+    if (!selectedSlot) return setError('Please select a time slot.');
+    setBooking(true); setError('');
+    try {
+      await api.post('/bookings', { hall_id: id, slot_id: selectedSlot.slot_id, notes });
+      setSuccess('Booking submitted! Check "My Bookings" for status.');
+      setSelectedSlot(null);
+      loadSlots();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Booking failed');
+    } finally { setBooking(false); }
+  };
+
+  if (loading) return <div className="spinner">Loading...</div>;
+  if (!hall) return <div className="spinner">Hall not found.</div>;
+
+  return (
+    <div className="page" style={{ maxWidth: '960px' }}>
+      <HallImages images={hall.images || []} />
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '2rem', alignItems: 'start' }}>
+        {/* Left - Hall Info */}
+        <div>
+          <h1 style={{ color: 'var(--espresso)', fontSize: '2rem', marginBottom: '0.5rem' }}>{hall.name}</h1>
+          {hall.location && <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>📍 {hall.location}</p>}
+          <HallInfoCards hall={hall} />
+          {hall.description && (
+            <div className="card card-body">
+              <h3 style={{ marginBottom: '0.5rem', color: 'var(--terracotta)' }}>About this Venue</h3>
+              <p style={{ color: '#555', lineHeight: '1.7' }}>{hall.description}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Right - Booking Panel */}
+        <div style={{ position: 'sticky', top: '80px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+          {/* Calendar Card */}
+          <div className="card card-body">
+            <h3 style={{ color: 'var(--espresso)', marginBottom: '1rem', fontFamily: 'Playfair Display, serif' }}>
+              📅 Select a Date
+            </h3>
+            <BookingCalendar
+              hallId={id}
+              selectedDate={selectedDate}
+              onDateSelect={handleDateSelect}
+            />
+          </div>
+
+          {/* Slots + Booking Card */}
+          {selectedDate && (
+            <div className="card card-body">
+              <h3 style={{ color: 'var(--espresso)', marginBottom: '0.75rem', fontSize: '1rem' }}>
+                🕐 Available Slots
+              </h3>
+
+              {success && <div className="alert alert-success">{success}</div>}
+              {error && <div className="alert alert-error">{error}</div>}
+
+              {slots.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No slots for this date.</p>
+              ) : (
+                <div className="slot-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                  {slots.map(slot => (
+                    <div key={slot.slot_id}
+                      className={`slot-card ${!slot.is_available ? 'slot-taken' : ''} ${selectedSlot?.slot_id === slot.slot_id ? 'slot-selected' : ''}`}
+                      onClick={() => slot.is_available && setSelectedSlot(slot)}>
+                      <div className="slot-time">{slot.start_time.slice(0, 5)} – {slot.end_time.slice(0, 5)}</div>
+                      <div className="slot-status">{slot.is_available ? '✅ Free' : '❌ Booked'}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {selectedSlot && (
+                <div className="form-group" style={{ marginTop: '1rem' }}>
+                  <label>Notes (optional)</label>
+                  <textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)}
+                    placeholder="Any special requirements..." style={{ resize: 'none' }} />
+                </div>
+              )}
+
+              <button className="btn btn-primary" style={{ width: '100%', marginTop: '0.75rem' }}
+                onClick={handleBook} disabled={booking || !selectedSlot}>
+                {booking ? 'Booking...' : '✨ Book Now'}
+              </button>
+
+              {!user && (
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: '0.5rem' }}>
+                  <a href="/login" style={{ color: 'var(--terracotta)' }}>Login</a> to book
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -99,17 +372,16 @@ function AdminHallView({ id }) {
     <div className="page" style={{ maxWidth: '960px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
         <button className="btn btn-secondary btn-sm" onClick={() => navigate(-1)}>← Back</button>
-        <h1 style={{ color: 'var(--terracotta)', fontSize: '1.6rem' }}>{hall.name}</h1>
+        <h1 style={{ color: 'var(--espresso)', fontSize: '1.6rem' }}>{hall.name}</h1>
         {hall.location && <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>📍 {hall.location}</span>}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '2rem', alignItems: 'start' }}>
-
         {/* Calendar */}
         <div className="card card-body">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
             <button className="btn btn-secondary btn-sm" onClick={() => setCurrentMonth(new Date(year, month - 1, 1))}>‹ Prev</button>
-            <h2 style={{ color: 'var(--terracotta)', fontSize: '1.1rem' }}>{monthName}</h2>
+            <h2 style={{ color: 'var(--espresso)', fontSize: '1.1rem' }}>{monthName}</h2>
             <button className="btn btn-secondary btn-sm" onClick={() => setCurrentMonth(new Date(year, month + 1, 1))}>Next ›</button>
           </div>
 
@@ -163,12 +435,11 @@ function AdminHallView({ id }) {
             })}
           </div>
 
-          {/* Legend */}
           <div style={{ display: 'flex', gap: '1.25rem', marginTop: '1rem', fontSize: '0.8rem', flexWrap: 'wrap' }}>
             {[['#27ae60', 'Confirmed'], ['#f39c12', 'Pending'], ['var(--cream-dark)', 'Today']].map(([color, label]) => (
               <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: color }} />
-                <span style={{ color: '#666' }}>{label}</span>
+                <span style={{ color: 'var(--text-muted)' }}>{label}</span>
               </div>
             ))}
           </div>
@@ -179,7 +450,6 @@ function AdminHallView({ id }) {
           <HallImages images={hall.images || []} />
           <HallInfoCards hall={hall} />
 
-          {/* Month summary */}
           <div className="card card-body">
             <h3 style={{ color: 'var(--terracotta)', marginBottom: '0.75rem', fontSize: '1rem' }}>📊 {monthName}</h3>
             {(() => {
@@ -192,7 +462,7 @@ function AdminHallView({ id }) {
                     { label: 'Confirmed', value: mb.filter(b => b.status === 'Confirmed').length, color: '#27ae60' },
                     { label: 'Pending', value: mb.filter(b => b.status === 'Pending').length, color: '#f39c12' },
                   ].map(s => (
-                    <div key={s.label} style={{ textAlign: 'center', flex: 1, padding: '0.5rem', background: '#f9f9f9', borderRadius: '8px' }}>
+                    <div key={s.label} style={{ textAlign: 'center', flex: 1, padding: '0.5rem', background: 'var(--beige)', borderRadius: '8px' }}>
                       <div style={{ fontSize: '1.4rem', fontWeight: 800, color: s.color }}>{s.value}</div>
                       <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{s.label}</div>
                     </div>
@@ -202,19 +472,18 @@ function AdminHallView({ id }) {
             })()}
           </div>
 
-          {/* Selected day detail */}
           <div className="card card-body">
             <h3 style={{ color: 'var(--terracotta)', marginBottom: '0.75rem', fontSize: '1rem' }}>
               {selectedDay
                 ? `📋 ${new Date(selectedDay + 'T00:00:00').toLocaleDateString('default', { weekday: 'short', month: 'short', day: 'numeric' })}`
                 : '📋 Select a date'}
             </h3>
-            {!selectedDay && <p style={{ color: '#aaa', fontSize: '0.85rem' }}>Click any date on the calendar.</p>}
-            {selectedDay && selectedBookings.length === 0 && <p style={{ color: '#aaa', fontSize: '0.85rem' }}>No bookings on this date.</p>}
+            {!selectedDay && <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Click any date on the calendar.</p>}
+            {selectedDay && selectedBookings.length === 0 && <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No bookings on this date.</p>}
             {selectedBookings.map(b => (
               <div key={b.booking_id} style={{
                 borderLeft: `4px solid ${statusColors[b.status]}`,
-                padding: '0.75rem', borderRadius: '6px', background: '#fafafa', marginBottom: '0.75rem',
+                padding: '0.75rem', borderRadius: '6px', background: 'var(--beige)', marginBottom: '0.75rem',
               }}>
                 <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '3px' }}>
                   🕐 {b.start_time?.slice(0, 5)} – {b.end_time?.slice(0, 5)}
@@ -231,116 +500,6 @@ function AdminHallView({ id }) {
               </div>
             ))}
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── User View: Booking ───────────────────────────────────────────────────────
-
-function UserHallView({ id, user }) {
-  const navigate = useNavigate();
-  const [hall, setHall] = useState(null);
-  const [slots, setSlots] = useState([]);
-  const [selectedSlot, setSelectedSlot] = useState(null);
-  const [selectedDate, setSelectedDate] = useState('');
-  const [notes, setNotes] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [booking, setBooking] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-
-  useEffect(() => {
-    api.get(`/halls/${id}`).then(r => setHall(r.data)).finally(() => setLoading(false));
-  }, [id]);
-
-  const loadSlots = useCallback(() => {
-    if (!selectedDate) return;
-    api.get(`/slots/${id}?date=${selectedDate}`).then(r => setSlots(r.data));
-    setSelectedSlot(null);
-  }, [selectedDate, id]);
-
-  useEffect(() => { loadSlots(); }, [loadSlots]);
-
-  const handleBook = async () => {
-    if (!user) return navigate('/login');
-    if (!selectedSlot) return setError('Please select a time slot.');
-    setBooking(true); setError('');
-    try {
-      await api.post('/bookings', { hall_id: id, slot_id: selectedSlot.slot_id, notes });
-      setSuccess('Booking submitted! Check "My Bookings" for status.');
-      setSelectedSlot(null);
-      loadSlots();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Booking failed');
-    } finally { setBooking(false); }
-  };
-
-  const today = new Date().toISOString().split('T')[0];
-
-  if (loading) return <div className="spinner">Loading...</div>;
-  if (!hall) return <div className="spinner">Hall not found.</div>;
-
-  return (
-    <div className="page" style={{ maxWidth: '900px' }}>
-      <HallImages images={hall.images || []} />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '2rem', alignItems: 'start' }}>
-        <div>
-          <h1 style={{ color: 'var(--terracotta)', fontSize: '2rem', marginBottom: '0.5rem' }}>{hall.name}</h1>
-          {hall.location && <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>📍 {hall.location}</p>}
-          <HallInfoCards hall={hall} />
-          {hall.description && (
-            <div className="card card-body">
-              <h3 style={{ marginBottom: '0.5rem', color: 'var(--terracotta)' }}>About this Venue</h3>
-              <p style={{ color: '#555', lineHeight: '1.7' }}>{hall.description}</p>
-            </div>
-          )}
-        </div>
-
-        <div className="card card-body" style={{ position: 'sticky', top: '80px' }}>
-          <h3 style={{ color: 'var(--terracotta)', marginBottom: '1rem' }}>📅 Book This Hall</h3>
-          {success && <div className="alert alert-success">{success}</div>}
-          {error && <div className="alert alert-error">{error}</div>}
-          <div className="form-group">
-            <label>Select Date</label>
-            <input type="date" min={today} value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
-          </div>
-          {selectedDate && (
-            <div>
-              <label style={{ fontWeight: 600, fontSize: '0.9rem', display: 'block', marginBottom: '0.5rem' }}>Available Slots</label>
-              {slots.length === 0
-                ? <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No slots for this date.</p>
-                : (
-                  <div className="slot-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                    {slots.map(slot => (
-                      <div key={slot.slot_id}
-                        className={`slot-card ${!slot.is_available ? 'slot-taken' : ''} ${selectedSlot?.slot_id === slot.slot_id ? 'slot-selected' : ''}`}
-                        onClick={() => slot.is_available && setSelectedSlot(slot)}>
-                        <div className="slot-time">{slot.start_time.slice(0, 5)} – {slot.end_time.slice(0, 5)}</div>
-                        <div className="slot-status">{slot.is_available ? '✅ Free' : '❌ Booked'}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-            </div>
-          )}
-          {selectedSlot && (
-            <div className="form-group" style={{ marginTop: '1rem' }}>
-              <label>Notes (optional)</label>
-              <textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)}
-                placeholder="Any special requirements..." style={{ resize: 'none' }} />
-            </div>
-          )}
-          <button className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }}
-            onClick={handleBook} disabled={booking || !selectedSlot}>
-            {booking ? 'Booking...' : ' Book Now'}
-          </button>
-          {!user && (
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: '0.5rem' }}>
-              <a href="/login" style={{ color: 'var(--terracotta)' }}>Login</a> to book
-            </p>
-          )}
         </div>
       </div>
     </div>
