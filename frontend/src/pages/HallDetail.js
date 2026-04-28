@@ -207,6 +207,9 @@ function UserHallView({ id, user }) {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');
   const [notes, setNotes] = useState('');
+  const [contactName, setContactName] = useState(user?.username || '');
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactEmail, setContactEmail] = useState(user?.email || '');
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState('');
@@ -234,9 +237,17 @@ function UserHallView({ id, user }) {
   const handleBook = async () => {
     if (!user) return navigate('/login');
     if (!selectedSlot) return setError('Please select a time slot.');
+    if (!contactName || !contactPhone || !contactEmail) return setError('Please fill in all contact details.');
     setBooking(true); setError('');
     try {
-      await api.post('/bookings', { hall_id: id, slot_id: selectedSlot.slot_id, notes });
+      await api.post('/bookings', {
+        hall_id: id,
+        slot_id: selectedSlot.slot_id,
+        notes,
+        contact_name: contactName,
+        contact_phone: contactPhone,
+        contact_email: contactEmail,
+      });
       setSuccess('Booking submitted! Check "My Bookings" for status.');
       setSelectedSlot(null);
       loadSlots();
@@ -307,10 +318,32 @@ function UserHallView({ id, user }) {
               )}
 
               {selectedSlot && (
-                <div className="form-group" style={{ marginTop: '1rem' }}>
-                  <label>Notes (optional)</label>
-                  <textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)}
-                    placeholder="Any special requirements..." style={{ resize: 'none' }} />
+                <div style={{ marginTop: '1rem' }}>
+                  <div style={{ background: 'var(--beige)', borderRadius: '8px', padding: '1rem', marginBottom: '0.75rem' }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--espresso)', marginBottom: '0.75rem' }}>
+                      📋 Contact Details
+                    </div>
+                    <div className="form-group">
+                      <label>Full Name *</label>
+                      <input value={contactName} onChange={e => setContactName(e.target.value)}
+                        placeholder="Your full name" required />
+                    </div>
+                    <div className="form-group">
+                      <label>Phone Number *</label>
+                      <input type="tel" value={contactPhone} onChange={e => setContactPhone(e.target.value)}
+                        placeholder="e.g. +91 98765 43210" required />
+                    </div>
+                    <div className="form-group">
+                      <label>Email *</label>
+                      <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)}
+                        placeholder="your@email.com" required />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label>Notes (optional)</label>
+                      <textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)}
+                        placeholder="Any special requirements..." style={{ resize: 'none' }} />
+                    </div>
+                  </div>
                 </div>
               )}
 

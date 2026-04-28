@@ -84,15 +84,16 @@ router.get('/:id', auth, async (req, res) => {
 
 // POST /api/bookings - user creates booking
 router.post('/', auth, async (req, res) => {
-  const { hall_id, slot_id, notes } = req.body;
+  const { hall_id, slot_id, notes, contact_name, contact_phone, contact_email } = req.body;
   if (!hall_id || !slot_id)
     return res.status(400).json({ message: 'hall_id and slot_id are required' });
+  if (!contact_name || !contact_phone || !contact_email)
+    return res.status(400).json({ message: 'Contact name, phone and email are required' });
 
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
 
-    // Check slot is available
     const [slots] = await conn.query(
       'SELECT * FROM TimeSlots WHERE slot_id = ? AND hall_id = ? AND is_available = TRUE FOR UPDATE',
       [slot_id, hall_id]
@@ -102,15 +103,12 @@ router.post('/', auth, async (req, res) => {
       return res.status(409).json({ message: 'Slot is not available' });
     }
 
-    // Create booking
     const [result] = await conn.query(
-      'INSERT INTO Bookings (user_id, hall_id, slot_id, notes, status) VALUES (?,?,?,?,?)',
-      [req.user.user_id, hall_id, slot_id, notes || '', 'Pending']
+      'INSERT INTO Bookings (user_id, hall_id, slot_id, notes, contact_name, contact_phone, contact_email, status) VALUES (?,?,?,?,?,?,?,?)',
+      [req.user.user_id, hall_id, slot_id, notes || '', contact_name, contact_phone, contact_email, 'Pending']
     );
 
-    // Mark slot as unavailable
     await conn.query('UPDATE TimeSlots SET is_available = FALSE WHERE slot_id = ?', [slot_id]);
-
     await conn.commit();
     res.status(201).json({ booking_id: result.insertId, message: 'Booking submitted successfully' });
   } catch (err) {
@@ -128,7 +126,6 @@ router.patch('/:id/status', auth, adminOnly, async (req, res) => {
     return res.status(400).json({ message: 'Invalid status' });
 
   try {
-    // If cancelling, free up the slot
     if (status === 'Cancelled') {
       const [bookings] = await db.query('SELECT slot_id FROM Bookings WHERE booking_id = ?', [req.params.id]);
       if (bookings.length > 0) {

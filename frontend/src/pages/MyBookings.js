@@ -49,10 +49,15 @@ export default function MyBookings() {
             <div key={b.booking_id} className="card card-body"
               style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
-                <h3 style={{ color: 'var(--terracotta)', marginBottom: '0.3rem' }}>{b.hall_name}</h3>
-                <div style={{ color: '#666', fontSize: '0.9rem' }}>
-                  📅 {b.slot_date?.slice(0,10)} &nbsp;|&nbsp; 🕐 {b.start_time?.slice(0,5)} – {b.end_time?.slice(0,5)}
+                <h3 style={{ color: 'var(--espresso)', marginBottom: '0.3rem' }}>{b.hall_name}</h3>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                  📅 {b.slot_date?.slice(0, 10)} &nbsp;|&nbsp; 🕐 {b.start_time?.slice(0, 5)} – {b.end_time?.slice(0, 5)}
                 </div>
+                {b.contact_name && (
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    👤 {b.contact_name} &nbsp;|&nbsp; 📞 {b.contact_phone}
+                  </div>
+                )}
                 <div style={{ marginTop: '0.3rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                   Booked on {new Date(b.booking_date).toLocaleDateString()}
                 </div>
@@ -71,16 +76,33 @@ export default function MyBookings() {
         <div className="modal-overlay" onClick={() => setSelected(null)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h2>Booking Details</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem', marginBottom: '1.5rem' }}>
-              <div><strong>Hall:</strong> {selected.hall_name}</div>
-              <div><strong>Date:</strong> {selected.slot_date?.slice(0,10)}</div>
-              <div><strong>Time:</strong> {selected.start_time?.slice(0,5)} – {selected.end_time?.slice(0,5)}</div>
-              <div><strong>Price per Day:</strong> ₹{Number(selected.price_per_day).toLocaleString()}</div>
-              <div><strong>Status:</strong> <span className={`badge ${statusColors[selected.status]}`}>{selected.status}</span></div>
-              {selected.notes && <div><strong>Notes:</strong> {selected.notes}</div>}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+              {/* Booking Info */}
+              <div style={{ background: 'var(--beige)', borderRadius: '8px', padding: '1rem' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--espresso)', marginBottom: '0.5rem' }}>📋 Booking Info</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.88rem' }}>
+                  <div><strong>Hall:</strong> {selected.hall_name}</div>
+                  <div><strong>Date:</strong> {selected.slot_date?.slice(0, 10)}</div>
+                  <div><strong>Time:</strong> {selected.start_time?.slice(0, 5)} – {selected.end_time?.slice(0, 5)}</div>
+                  <div><strong>Price:</strong> ₹{Number(selected.price_per_day).toLocaleString()}/day</div>
+                  <div><strong>Status:</strong> <span className={`badge ${statusColors[selected.status]}`}>{selected.status}</span></div>
+                  {selected.notes && <div><strong>Notes:</strong> {selected.notes}</div>}
+                </div>
+              </div>
+
+              {/* Contact Info */}
+              <div style={{ background: 'var(--beige)', borderRadius: '8px', padding: '1rem' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--espresso)', marginBottom: '0.5rem' }}>👤 Contact Details</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.88rem' }}>
+                  <div><strong>Name:</strong> {selected.contact_name || '—'}</div>
+                  <div><strong>Phone:</strong> {selected.contact_phone || '—'}</div>
+                  <div><strong>Email:</strong> {selected.contact_email || '—'}</div>
+                </div>
+              </div>
             </div>
 
-            <h3 style={{ color: 'var(--terracotta)', marginBottom: '0.75rem' }}>Payment History</h3>
+            <h3 style={{ color: 'var(--espresso)', marginBottom: '0.75rem', fontSize: '1rem' }}>💰 Payment History</h3>
             {payments.length === 0 ? (
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No payments recorded yet.</p>
             ) : (
