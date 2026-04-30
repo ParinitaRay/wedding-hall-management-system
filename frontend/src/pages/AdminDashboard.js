@@ -105,7 +105,14 @@ function HallsTab() {
   useEffect(() => { load(); }, []);
 
   const openAdd = () => { setEditing(null); setForm({ name: '', capacity: '', size_sqft: '', price_per_day: '', description: '', location: '', status: 'Active' }); setShowModal(true); };
-  const openEdit = (h) => { setEditing(h); setForm({ name: h.name, capacity: h.capacity, size_sqft: h.size_sqft, price_per_day: h.price_per_day, description: h.description || '', location: h.location || '', status: h.status }); setShowModal(true); };
+  const openEdit = async (h) => {
+    setEditing(h);
+    setForm({ name: h.name, capacity: h.capacity, size_sqft: h.size_sqft, price_per_day: h.price_per_day, description: h.description || '', location: h.location || '', status: h.status });
+    // fetch images for this hall
+    const r = await api.get(`/halls/${h.hall_id}`);
+    setEditImages(r.data.images || []);
+    setShowModal(true);
+  };
 
   const save = async () => {
     try {
@@ -118,6 +125,13 @@ function HallsTab() {
   const del = async (id) => {
     if (!window.confirm('Delete this hall?')) return;
     await api.delete(`/halls/${id}`); load();
+  };
+
+  const deleteImage = async (imgId) => {
+    if (!window.confirm('Delete this image?')) return;
+    await api.delete(`/halls/images/${imgId}`);
+    setEditImages(prev => prev.filter(img => img.img_id !== imgId));
+    load();
   };
 
   const openUpload = (hallId) => { setUploadingFor(hallId); setImageFile(null); setPreview(null); };
@@ -163,7 +177,7 @@ function HallsTab() {
               <tr key={h.hall_id}>
                 <td>
                   {h.primary_image
-                    ? <img src={`http://localhost:5000${h.primary_image}`} alt={h.name}
+                    ? <img src={h.primary_image} alt={h.name}
                         style={{ width: '56px', height: '42px', objectFit: 'cover', borderRadius: '6px' }} />
                     : <div style={{ width: '56px', height: '42px', background: 'var(--cream-dark)', borderRadius: '6px',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>💒</div>
@@ -245,6 +259,45 @@ function HallsTab() {
             </div>
             <div className="form-group"><label>Location</label><input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} /></div>
             <div className="form-group"><label>Description</label><textarea rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+
+            {editing && (
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-mid)', display: 'block', marginBottom: '0.5rem' }}>
+                  Hall Images
+                </label>
+                {editImages.length === 0 ? (
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>No images uploaded yet.</p>
+                ) : (
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {editImages.map(img => (
+                      <div key={img.img_id} style={{ position: 'relative' }}>
+                        <img src={img.image_url} alt=""
+                          style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '6px',
+                            border: img.is_primary ? '3px solid var(--terracotta)' : '2px solid var(--cream-dark)' }} />
+                        {img.is_primary && (
+                          <div style={{ position: 'absolute', top: '2px', left: '2px', background: 'var(--terracotta)',
+                            color: 'white', fontSize: '0.55rem', padding: '1px 4px', borderRadius: '3px', fontWeight: 700 }}>
+                            PRIMARY
+                          </div>
+                        )}
+                        <button onClick={() => deleteImage(img.img_id)}
+                          style={{ position: 'absolute', top: '-6px', right: '-6px', width: '18px', height: '18px',
+                            background: '#c0392b', color: 'white', border: 'none', borderRadius: '50%',
+                            cursor: 'pointer', fontSize: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontWeight: 700, lineHeight: 1 }}>
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <button className="btn btn-success btn-sm" style={{ marginTop: '0.75rem' }}
+                  onClick={() => { setShowModal(false); openUpload(editing.hall_id); }}>
+                  + Upload New Image
+                </button>
+              </div>
+            )}
+
             <div className="modal-actions">
               <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
               <button className="btn btn-primary" onClick={save}>Save</button>

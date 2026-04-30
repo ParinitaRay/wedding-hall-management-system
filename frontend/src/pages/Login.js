@@ -45,7 +45,7 @@ export default function Login() {
           Don't have an account? <Link to="/register">Register</Link>
         </div>
         <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#f8f4f0', borderRadius: '8px', fontSize: '0.8rem', color: '#666' }}>
-          <strong>Demo Admin:</strong> admin@weddinghall.com / password (run setup.sql first)
+          <strong>Demo Admin:</strong> admin@gmail.com password  admin1234
         </div>
       </div>
     </div>

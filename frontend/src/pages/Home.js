@@ -21,9 +21,9 @@ export default function Home() {
         <h2 style={{ color: 'var(--espresso)', marginBottom: '1rem' }}>How It Works</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2rem', maxWidth: '800px', margin: '0 auto' }}>
           {[
-            { icon: '🔍', title: 'Browse Halls', desc: 'Explore our curated list of premium wedding venues.' },
-            { icon: '📅', title: 'Check Availability', desc: 'Pick your date and see available time slots.' },
-            { icon: '✅', title: 'Book Instantly', desc: 'Submit a booking request in just a few clicks.' },
+            { title: 'Browse Halls', desc: 'Explore our curated list of premium wedding venues.' },
+            { title: 'Check Availability', desc: 'Pick your date and see available time slots.' },
+            { title: 'Book Instantly', desc: 'Submit a booking request in just a few clicks.' },
           ].map((s, i) => (
             <div key={i} className="card card-body" style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>{s.icon}</div>
