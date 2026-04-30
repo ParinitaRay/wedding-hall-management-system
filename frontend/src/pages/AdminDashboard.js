@@ -105,7 +105,7 @@ function HallsTab() {
   const load = () => api.get('/halls/all').then(r => setHalls(r.data));
   useEffect(() => { load(); }, []);
 
-  const openAdd = () => { setEditing(null); setForm({ name: '', capacity: '', size_sqft: '', price_per_day: '', description: '', location: '', status: 'Active' }); setShowModal(true); };
+  const openAdd = () => { setEditing(null); setEditImages([]);  setForm({ name: '', capacity: '', size_sqft: '', price_per_day: '', description: '', location: '', status: 'Active' }); setShowModal(true); };
   const openEdit = async (h) => {
     setEditing(h);
     setForm({ name: h.name, capacity: h.capacity, size_sqft: h.size_sqft, price_per_day: h.price_per_day, description: h.description || '', location: h.location || '', status: h.status });
