@@ -95,6 +95,7 @@ function HallsTab() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: '', capacity: '', size_sqft: '', price_per_day: '', description: '', location: '', status: 'Active' });
+  const [editImages, setEditImages] = useState([]);
   const [uploadingFor, setUploadingFor] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [preview, setPreview] = useState(null);
