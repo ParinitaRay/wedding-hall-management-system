@@ -21,7 +21,6 @@ router.post('/', auth, adminOnly, async (req, res) => {
   const { booking_id, amount, payment_type } = req.body;
   if (!booking_id || !amount || !payment_type)
     return res.status(400).json({ message: 'All fields required' });
-
   try {
     const [result] = await db.query(
       'INSERT INTO Payments (booking_id, amount, payment_type) VALUES (?,?,?)',
@@ -33,11 +32,13 @@ router.post('/', auth, adminOnly, async (req, res) => {
   }
 });
 
-// GET /api/payments - admin gets all payments summary
+// GET /api/payments - admin gets all payments with contact details
 router.get('/', auth, adminOnly, async (req, res) => {
   try {
     const [payments] = await db.query(`
-      SELECT p.*, b.status AS booking_status, u.username, h.name AS hall_name
+      SELECT p.*, b.status AS booking_status,
+        u.username, h.name AS hall_name,
+        b.contact_name, b.contact_phone, b.contact_email
       FROM Payments p
       JOIN Bookings b ON p.booking_id = b.booking_id
       JOIN Users u ON b.user_id = u.user_id

@@ -100,10 +100,29 @@ router.put('/:id', auth, adminOnly, async (req, res) => {
 
 // DELETE /api/halls/:id
 router.delete('/:id', auth, adminOnly, async (req, res) => {
+  const conn = await db.getConnection();
   try {
-    await db.query('DELETE FROM Halls WHERE hall_id = ?', [req.params.id]);
+    await conn.beginTransaction();
+    // Delete in correct order to respect foreign key constraints
+    await conn.query('DELETE FROM Payments WHERE booking_id IN (SELECT booking_id FROM Bookings WHERE hall_id = ?)', [req.params.id]);
+    await conn.query('DELETE FROM Bookings WHERE hall_id = ?', [req.params.id]);
+    await conn.query('DELETE FROM TimeSlots WHERE hall_id = ?', [req.params.id]);
+    // Hall_Images cascade automatically, but delete Cloudinary images first
+    const [images] = await conn.query('SELECT cloudinary_id FROM Hall_Images WHERE hall_id = ?', [req.params.id]);
+    for (const img of images) {
+      if (img.cloudinary_id) {
+        try { await cloudinary.uploader.destroy(img.cloudinary_id); } catch {}
+      }
+    }
+    await conn.query('DELETE FROM Halls WHERE hall_id = ?', [req.params.id]);
+    await conn.commit();
     res.json({ message: 'Hall deleted' });
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) {
+    await conn.rollback();
+    res.status(500).json({ message: err.message });
+  } finally {
+    conn.release();
+  }
 });
 
 // POST /api/halls/:id/images

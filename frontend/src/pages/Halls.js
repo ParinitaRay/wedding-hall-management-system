@@ -43,9 +43,9 @@ export default function Halls() {
                 <div className="card-body">
                   <h3>{hall.name}</h3>
                   <div className="hall-meta">
-                    <span>👥 {hall.capacity} guests</span>
-                    <span>📐 {hall.size_sqft} sqft</span>
-                    {hall.location && <span>📍 {hall.location}</span>}
+                    <span> {hall.capacity} guests</span>
+                    <span> {hall.size_sqft} sqft</span>
+                    {hall.location && <span> {hall.location}</span>}
                   </div>
                   <div className="hall-price">₹{Number(hall.price_per_day).toLocaleString()} / day</div>
                   <span className="badge badge-success">Available</span>

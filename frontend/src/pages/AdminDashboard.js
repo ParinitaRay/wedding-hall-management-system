@@ -70,10 +70,10 @@ function Overview() {
     <div>
       <div className="stats-grid">
         {[
-          { label: 'Total Halls', value: stats.halls, icon: '🏛️' },
-          { label: 'Total Bookings', value: stats.bookings, icon: '📋' },
-          { label: 'Pending', value: stats.pending, icon: '⏳' },
-          { label: 'Confirmed', value: stats.confirmed, icon: '✅' },
+          { label: 'Total Halls', value: stats.halls },
+          { label: 'Total Bookings', value: stats.bookings},
+          { label: 'Pending', value: stats.pending},
+          { label: 'Confirmed', value: stats.confirmed},
         ].map(s => (
           <div key={s.label} className="stat-card">
             <div style={{ fontSize: '1.8rem' }}>{s.icon}</div>
@@ -420,8 +420,8 @@ function BookingsTab() {
             </div>
 
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-              <button className="btn btn-success btn-sm" onClick={() => updateStatus(selected.booking_id, 'Confirmed')}>✅ Confirm</button>
-              <button className="btn btn-danger btn-sm" onClick={() => updateStatus(selected.booking_id, 'Cancelled')}>❌ Cancel</button>
+              <button className="btn btn-success btn-sm" onClick={() => updateStatus(selected.booking_id, 'Confirmed')}> Confirm</button>
+              <button className="btn btn-danger btn-sm" onClick={() => updateStatus(selected.booking_id, 'Cancelled')}> Cancel</button>
             </div>
 
             <h3 style={{ color: 'var(--espresso)', marginBottom: '0.75rem', fontSize: '1rem' }}>💰 Payments</h3>

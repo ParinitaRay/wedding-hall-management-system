@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS Hall_Images (
   img_id INT AUTO_INCREMENT PRIMARY KEY,
   hall_id INT,
   image_url TEXT NOT NULL,
+  cloudinary_id VARCHAR(255),
   is_primary BOOLEAN DEFAULT FALSE,
   FOREIGN KEY (hall_id) REFERENCES Halls(hall_id) ON DELETE CASCADE
 );
@@ -55,6 +56,9 @@ CREATE TABLE IF NOT EXISTS Bookings (
   booking_date DATETIME DEFAULT CURRENT_TIMESTAMP,
   status ENUM('Pending','Confirmed','Cancelled') DEFAULT 'Pending',
   notes TEXT,
+  contact_name VARCHAR(100),
+  contact_phone VARCHAR(20),
+  contact_email VARCHAR(150),
   FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
   FOREIGN KEY (hall_id) REFERENCES Halls(hall_id) ON DELETE RESTRICT,
   FOREIGN KEY (slot_id) REFERENCES TimeSlots(slot_id) ON DELETE RESTRICT

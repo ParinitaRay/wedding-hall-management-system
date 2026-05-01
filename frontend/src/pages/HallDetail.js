@@ -311,7 +311,7 @@ function UserHallView({ id, user }) {
                       className={`slot-card ${!slot.is_available ? 'slot-taken' : ''} ${selectedSlot?.slot_id === slot.slot_id ? 'slot-selected' : ''}`}
                       onClick={() => slot.is_available && setSelectedSlot(slot)}>
                       <div className="slot-time">{slot.start_time.slice(0, 5)} – {slot.end_time.slice(0, 5)}</div>
-                      <div className="slot-status">{slot.is_available ? '✅ Free' : '❌ Booked'}</div>
+                      <div className="slot-status">{slot.is_available ? 'Free' : 'Booked'}</div>
                     </div>
                   ))}
                 </div>
@@ -349,7 +349,7 @@ function UserHallView({ id, user }) {
 
               <button className="btn btn-primary" style={{ width: '100%', marginTop: '0.75rem' }}
                 onClick={handleBook} disabled={booking || !selectedSlot}>
-                {booking ? 'Booking...' : '✨ Book Now'}
+                {booking ? 'Booking...' : ' Book Now'}
               </button>
 
               {!user && (
